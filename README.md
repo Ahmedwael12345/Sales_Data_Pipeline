@@ -14,7 +14,7 @@ The result is a structured analytics-ready dataset (customers, products, sales) 
 ---
 
 ## 🏗️ Architecture
-![Architecture Diagram](./docs/architecture.png)  
+![Architecture Diagram]  
 *(Placeholder — add your diagram here)*  
 
 **Workflow**:
@@ -65,3 +65,54 @@ Columns include:
 ```bash
 git clone https://github.com/yourusername/Sales_Data_Pipeline.git
 cd Sales_Data_Pipeline
+```
+Start Docker
+
+```bash
+docker-compose up -d
+```
+Load CSV into PostgreSQL
+```bash
+python loaddata.py
+```
+Run dbt inside Airflow container
+
+```bash
+docker exec -it airflow_container bash
+cd /opt/airflow/my_dbt_project/my_dbt_project
+dbt run
+dbt test
+```
+Open Airflow UI
+
+URL: http://localhost:8080
+
+
+Folder Structure
+```bash
+Sales_Data_Pipeline/
+│── dags/                 # Airflow DAGs
+│   └── dbt_dag.py
+│── my_dbt_project/       # dbt models + tests
+│── profiles/             # dbt profiles.yml
+│── dbt/                  # extra dbt configs if any
+│── logs/                 # Airflow logs
+│── plugins/              # Airflow plugins
+│── loaddata.py           # CSV ingestion script
+│── docker-compose.yml    # Docker services
+│── Dockerfile            # Airflow custom image
+│── venv/                 # local virtual environment
+│── README.md             # project documentation
+
+```
+Future Improvements
+
+Add streaming ingestion with Kafka
+
+Integrate Spark for large-scale transformations
+
+Add CI/CD with GitHub Actions (dbt + DAG validation)
+
+Build BI dashboards with Metabase/PowerBI
+
+Deploy to a cloud warehouse (Snowflake)
