@@ -105,14 +105,4 @@ Sales_Data_Pipeline/
 │── README.md             # project documentation
 
 ```
-Future Improvements
 
-Add streaming ingestion with Kafka
-
-Integrate Spark for large-scale transformations
-
-Add CI/CD with GitHub Actions (dbt + DAG validation)
-
-Build BI dashboards with Metabase/PowerBI
-
-Deploy to a cloud warehouse (Snowflake)
