@@ -1,7 +1,6 @@
 # Sales_Data_Pipeline
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-blue)
 ![Airflow](https://img.shields.io/badge/orchestrator-Airflow-orange)
 ![dbt](https://img.shields.io/badge/transform-dbt-red)
 
