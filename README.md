@@ -13,10 +13,7 @@ The result is a structured analytics-ready dataset (customers, products, sales) 
 
 ---
 
-## 🏗️ Architecture
-![Architecture Diagram]  
-*(Placeholder — add your diagram here)*  
-
+## 🏗️ Architecture 
 **Workflow**:
 1. Load raw CSV → PostgreSQL (`loaddata.py`).
 2. Airflow DAG (`dbt_dag`) triggers dbt.
