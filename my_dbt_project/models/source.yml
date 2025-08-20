@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: pipline          
+    schema: pipline    
+    database: mydatabase   
+    tables:
+      - name: train       
+        description: "Raw Superstore sales data"

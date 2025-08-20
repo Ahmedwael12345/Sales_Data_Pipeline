@@ -1,0 +1,12 @@
+my_dbt_project:
+  outputs:
+    dev:
+      dbname: mydatabase
+      host: postgres
+      pass: mypassword
+      port: 5432
+      schema: pipline
+      threads: 4
+      type: postgres
+      user: myuser
+  target: dev

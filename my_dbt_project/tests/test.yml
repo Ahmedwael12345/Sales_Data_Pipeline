@@ -1,0 +1,47 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: "Staging table for raw order data"
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+      - name: customer_id
+        tests:
+          - not_null
+      - name: product_id
+        tests:
+          - not_null
+
+  - name: dim_customers
+    description: "Dimension table with unique customers"
+    columns:
+      - name: customer_id
+        tests:
+          - not_null
+          - unique
+
+  - name: dim_products
+    description: "Dimension table with unique products"
+    columns:
+      - name: product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: fact_sales
+    description: "Fact table with transactional sales data"
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+      - name: customer_id
+        tests:
+          - not_null
+      - name: product_id
+        tests:
+          - not_null
+      - name: sales
+        tests:
+          - not_null
