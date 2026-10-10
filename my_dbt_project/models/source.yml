@@ -1,9 +1,40 @@
 version: 2
 
 sources:
-  - name: pipline          
-    schema: pipline    
-    database: mydatabase   
+  - name: sales
+    description: >-
+      Raw Superstore order export, loaded by loaddata.py into the raw schema.
+      Nothing in this schema is transformed; it holds what the source said.
+    database: mydatabase
+    schema: pipeline
     tables:
-      - name: train       
-        description: "Raw Superstore sales data"
+      - name: orders
+        description: >-
+          One row per order line. The line identifier (row_id) is unique across
+          the 9,800 rows in the sample export; order_id and product_id are not,
+          because an order contains several lines and a product is sold many times.
+        columns:
+          - name: row_id
+            description: Source line identifier. Unique, and the grain of the fact table.
+          - name: order_id
+            description: Order identifier. Repeats across the lines of one order.
+          - name: order_date
+            description: Date the order was placed. Stored as DD/MM/YYYY in the source.
+          - name: ship_date
+            description: Date the order shipped. Always on or after order_date in the sample.
+          - name: ship_mode
+            description: Shipping service chosen for the order.
+          - name: customer_id
+            description: Customer business key. 793 distinct customers in the sample.
+          - name: product_id
+            description: Product business key. 1,861 distinct products in the sample.
+          - name: sales
+            description: Line revenue. Never null and never negative in the sample.
+          - name: postal_code
+            description: Shipping postal code. Nullable; 11 rows are empty in the sample.
+          - name: region
+            description: >-
+              Shipping region. Varies between the orders of the same customer, so
+              it is not a customer attribute and is deliberately not used in dim_customer.
+          - name: _loaded_at
+            description: Timestamp of the load that wrote this row.
