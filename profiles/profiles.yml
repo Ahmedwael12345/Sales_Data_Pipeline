@@ -1,12 +1,25 @@
+# dbt profile for the sales pipeline.
+#
+# Every value comes from an environment variable with a working default, so no
+# credential is hard-coded and the same file works in both places this project
+# runs:
+#   * on the host, where docker compose publishes PostgreSQL on localhost
+#   * inside the Airflow container, where the database host is the service name
+#     "postgres"
+#
+# Copy this file to ~/.dbt/profiles.yml, or pass --profiles-dir profiles to dbt.
+
 my_dbt_project:
+  target: dev
   outputs:
     dev:
-      dbname: mydatabase
-      host: postgres
-      pass: mypassword
-      port: 5432
-      schema: pipline
-      threads: 4
       type: postgres
-      user: myuser
-  target: dev
+      host: "{{ env_var('POSTGRES_HOST', 'localhost') }}"
+      # dbt renders this file before parsing it, and the port must be an integer,
+      # so the rendered value is cast explicitly.
+      port: "{{ env_var('POSTGRES_PORT', '5432') | int }}"
+      user: "{{ env_var('POSTGRES_USER', 'myuser') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD', 'mypassword') }}"
+      dbname: "{{ env_var('POSTGRES_DB', 'mydatabase') }}"
+      schema: "{{ env_var('DBT_SCHEMA', 'pipeline') }}"
+      threads: 4
