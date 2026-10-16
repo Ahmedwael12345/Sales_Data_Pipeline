@@ -1,3 +1,42 @@
+# Local Airflow + PostgreSQL for the sales pipeline.
+#
+#   docker compose up -d            # start everything
+#   open http://localhost:8080      # Airflow UI (airflow / airflow)
+#
+# Two databases live in the same PostgreSQL server and that is deliberate:
+#   * mydatabase  - the pipeline data (raw table, dbt models)
+#   * airflow     - Airflow's own metadata
+# Keeping them apart means rebuilding the pipeline never touches Airflow state.
+#
+# The dbt profile reads credentials from the environment variables below, so the
+# same profile file works on the host (host = localhost) and in the container
+# (host = postgres).
+
+x-airflow-common: &airflow-common
+  build: .
+  environment: &airflow-environment
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://myuser:mypassword@postgres:5432/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+    AIRFLOW_UID: "${AIRFLOW_UID:-50000}"
+    DBT_PROJECT_DIR: /opt/airflow/dbt
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: "5432"
+    POSTGRES_USER: myuser
+    POSTGRES_PASSWORD: mypassword
+    POSTGRES_DB: mydatabase
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./my_dbt_project:/opt/airflow/dbt
+    - ./profiles:/home/airflow/.dbt
+  depends_on:
+    postgres:
+      condition: service_healthy
+  networks:
+    - airflow_network
+
 services:
   postgres:
     image: postgres:15
@@ -10,36 +49,53 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - airflow_network  
-
-  airflow:
-    build: .
-    container_name: airflow_container
-    environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://myuser:mypassword@postgres:5432/mydatabase
-      AIRFLOW__WEBSERVER__WEB_SERVER_PORT: 8080
-    ports:
-      - "8080:8080"
-    depends_on:
-      - postgres
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./logs:/opt/airflow/logs
-      - ./plugins:/opt/airflow/plugins
-      - ./my_dbt_project:/opt/airflow/my_dbt_project/my_dbt_project
-      - ./profiles:/home/airflow/.dbt
+      # Creates the separate Airflow metadata database on first start.
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/10-airflow-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - airflow_network
+
+  # Initialises the metadata database and creates the login user, then exits.
+  # Without this the webserver and scheduler have nothing to run against.
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow_init
     command:
       - bash
       - -c
-      - airflow db init && airflow webserver
+      - |
+        airflow db migrate &&
+        airflow users create \
+          --username airflow \
+          --password airflow \
+          --firstname Airflow \
+          --lastname Admin \
+          --role Admin \
+          --email admin@example.com
+    restart: on-failure
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow_webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  # The scheduler is what actually runs the DAG. Starting only the webserver
+  # gives a UI with nothing behind it.
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow_scheduler
+    command: scheduler
+    restart: unless-stopped
 
 volumes:
   postgres_data:
-  airflow_data:
 
 networks:
   airflow_network:

@@ -1,0 +1,33 @@
+# --- Python -----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# --- Local secrets ----------------------------------------------------------
+# The dbt profile and the loader read credentials from environment variables and
+# fall back to the local Docker demo values, so no real secret needs a file.
+.env
+*.env.local
+
+# --- Airflow ----------------------------------------------------------------
+logs/
+airflow.cfg
+airflow.db
+airflow-webserver.pid
+standalone_admin_password.txt
+plugins/
+
+# --- dbt --------------------------------------------------------------------
+target/
+dbt_packages/
+dbt/logs/
+**/logs/dbt.log
+profiles/.user.yml
+
+# --- Editors and OS ---------------------------------------------------------
+.DS_Store
+.idea/
+.vscode/
+*.swp

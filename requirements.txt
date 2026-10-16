@@ -1,0 +1,9 @@
+# Loader dependencies (host side, and used by CI).
+# Airflow and dbt are installed inside the Airflow image — see Dockerfile.
+pandas>=2.0
+psycopg2-binary>=2.9
+
+# Transformation layer, pinned so CI and the Docker image agree.
+# 1.10 is the first release that supports the "arguments:" block used by the
+# relationships tests in my_dbt_project/tests/test.yml.
+dbt-postgres>=1.10,<2.0

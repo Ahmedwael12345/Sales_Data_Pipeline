@@ -1,9 +1,20 @@
 version: 2
 
+# Model names here must match the model file names exactly. An earlier version
+# of this file referred to dim_customers and dim_products, but the models are
+# dim_customer and dim_product, so dbt silently skipped four tests with a
+# warning. The relationship tests below depend on the referenced columns being
+# unique in the dimensions, which is asserted here as well.
+
 models:
   - name: stg_orders
-    description: "Staging table for raw order data"
+    description: One clean row per order line, typed and trimmed.
     columns:
+      - name: row_id
+        description: Source line identifier and the grain of this model.
+        tests:
+          - not_null
+          - unique
       - name: order_id
         tests:
           - not_null
@@ -13,35 +24,67 @@ models:
       - name: product_id
         tests:
           - not_null
-
-  - name: dim_customers
-    description: "Dimension table with unique customers"
-    columns:
-      - name: customer_id
-        tests:
-          - not_null
-          - unique
-
-  - name: dim_products
-    description: "Dimension table with unique products"
-    columns:
-      - name: product_id
-        tests:
-          - not_null
-          - unique
-
-  - name: fact_sales
-    description: "Fact table with transactional sales data"
-    columns:
-      - name: order_id
-        tests:
-          - not_null
-      - name: customer_id
-        tests:
-          - not_null
-      - name: product_id
+      - name: order_date
         tests:
           - not_null
       - name: sales
         tests:
           - not_null
+
+  - name: dim_customer
+    description: One row per customer.
+    columns:
+      - name: customer_id
+        description: Customer business key and the primary key of this dimension.
+        tests:
+          - not_null
+          - unique
+      - name: customer_name
+        tests:
+          - not_null
+
+  - name: dim_product
+    description: One row per product, with conflicting source names resolved deterministically.
+    columns:
+      - name: product_id
+        description: Product business key and the primary key of this dimension.
+        tests:
+          - not_null
+          - unique
+      - name: product_name
+        tests:
+          - not_null
+
+  - name: fact_sales
+    description: One row per order line.
+    columns:
+      - name: row_id
+        description: Order line identifier and the grain of this model.
+        tests:
+          - not_null
+          - unique
+      - name: order_id
+        tests:
+          - not_null
+      - name: order_date
+        tests:
+          - not_null
+      - name: sales
+        tests:
+          - not_null
+      - name: customer_id
+        description: Must exist in dim_customer.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customer')
+                field: customer_id
+      - name: product_id
+        description: Must exist in dim_product.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: product_id

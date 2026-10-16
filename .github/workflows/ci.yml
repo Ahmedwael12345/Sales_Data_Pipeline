@@ -1,0 +1,83 @@
+name: CI
+
+# Runs the real pipeline on every push: load the raw data into a throwaway
+# PostgreSQL, build the dbt models, and run the data tests. A failing test fails
+# the build, which is the whole point of having tests.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: myuser
+          POSTGRES_PASSWORD: mypassword
+          POSTGRES_DB: mydatabase
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Loader (psycopg2) settings
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGDATABASE: mydatabase
+      PGUSER: myuser
+      PGPASSWORD: mypassword
+      # dbt profile settings
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Load the raw data
+        run: python loaddata.py
+
+      - name: Load again to prove the load is idempotent
+        run: |
+          python loaddata.py
+          rows=$(psql -h localhost -U myuser -d mydatabase -tAc "select count(*) from pipeline.orders")
+          echo "rows in pipeline.orders after two loads: $rows"
+          test "$rows" = "9800"
+
+      - name: Build and test the dbt models
+        # The CSV is loaded by loaddata.py, so the dbt seed is excluded here; it
+        # exists only as a convenient copy of the sample dataset.
+        run: |
+          dbt build \
+            --project-dir my_dbt_project \
+            --profiles-dir profiles \
+            --exclude resource_type:seed
+
+      - name: Show the row counts of the final models
+        run: |
+          psql -h localhost -U myuser -d mydatabase -c "
+            select 'dim_customer' as model, count(*) from pipeline_analytics.dim_customer
+            union all
+            select 'dim_product', count(*) from pipeline_analytics.dim_product
+            union all
+            select 'fact_sales', count(*) from pipeline_analytics.fact_sales;"
